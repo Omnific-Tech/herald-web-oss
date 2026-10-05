@@ -1,0 +1,42 @@
+{
+  "name": "@omnific-tech/herald-web",
+  "version": "0.1.0",
+  "description": "Herald Web Push client for product PWAs",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Omnific-Tech/herald-web.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./sw": {
+      "types": "./dist/sw.d.ts",
+      "import": "./dist/sw.js"
+    },
+    "./herald-sw.js": "./dist/herald-sw.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b --force && node scripts/build.mjs",
+    "prepare": "npm run build",
+    "dev": "npm run build && vite demo",
+    "build:demo": "npm run build && vite build demo",
+    "lint": "oxlint",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.13.6",
+    "esbuild": "^0.28.2",
+    "oxlint": "^1.85.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.1"
+  }
+}

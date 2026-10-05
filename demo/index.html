@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#171717" />
+    <title>Herald push test</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Herald push test</h1>
+      <p class="muted" id="target"></p>
+
+      <dl>
+        <dt>Web Push</dt>
+        <dd id="supported">Checking…</dd>
+        <dt>Permission</dt>
+        <dd id="permission">Checking…</dd>
+        <dt>Device</dt>
+        <dd id="device">Not registered</dd>
+      </dl>
+
+      <p id="android-app" hidden>
+        Notifications on this device are managed by the Android app.
+      </p>
+
+      <p id="unsupported" hidden>
+        This browser cannot receive Web Push here. On iPhone and iPad, tap Share, then Add to Home
+        Screen, and open the test from the Home Screen icon.
+      </p>
+
+      <form id="controls">
+        <fieldset>
+          <legend>Channels</legend>
+          <label><input type="checkbox" name="channel" value="alerts" checked /> Alerts</label>
+          <label><input type="checkbox" name="channel" value="system" checked /> System</label>
+        </fieldset>
+        <div class="actions">
+          <button type="submit" id="enable">Enable notifications</button>
+          <button type="button" id="disable">Disable</button>
+        </div>
+      </form>
+
+      <p id="error" role="alert"></p>
+
+      <section>
+        <h2>Received</h2>
+        <p class="muted" id="empty">Nothing received while this page was open.</p>
+        <ul id="received" aria-label="Received deliveries"></ul>
+      </section>
+    </main>
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>

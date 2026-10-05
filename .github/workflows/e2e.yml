@@ -1,0 +1,45 @@
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Require pinned broker source
+        env:
+          SOURCE_REVISION: ${{ vars.HERALD_SOURCE_REVISION }}
+        run: '[[ "$SOURCE_REVISION" =~ ^[0-9a-f]{40}$ ]]'
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Omnific-Tech/herald
+          ref: ${{ vars.HERALD_SOURCE_REVISION }}
+          path: herald
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: herald/go.mod
+          cache-dependency-path: herald/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx playwright install --with-deps chrome
+      - run: npm run test:e2e
+        env:
+          HERALD_DIR: herald
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          include-hidden-files: true
+          retention-days: 7

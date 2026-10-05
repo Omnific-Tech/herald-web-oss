@@ -1,0 +1,110 @@
+:root {
+  color-scheme: light dark;
+  --bg: #fafafa;
+  --fg: #171717;
+  --muted: #737373;
+  --line: #e5e5e5;
+  --danger: #b91c1c;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0a0a;
+    --fg: #fafafa;
+    --muted: #a3a3a3;
+    --line: #262626;
+    --danger: #f87171;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+main {
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+h2 {
+  font-size: 1rem;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+dt {
+  color: var(--muted);
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+fieldset {
+  display: flex;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+button {
+  font: inherit;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--fg);
+  color: var(--bg);
+}
+
+button[type='button'] {
+  background: transparent;
+  color: var(--fg);
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+[role='alert'] {
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+#received {
+  padding: 0;
+  list-style: none;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8125rem;
+}
+
+#received li {
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}

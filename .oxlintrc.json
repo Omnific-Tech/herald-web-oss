@@ -1,0 +1,3 @@
+{
+  "ignorePatterns": ["dist", "demo/dist", "demo/public/herald-sw.js"]
+}

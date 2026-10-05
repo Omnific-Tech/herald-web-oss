@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/worker.tsbuildinfo",
+    "lib": ["ES2023", "WebWorker"]
+  },
+  "include": ["src/sw.ts", "src/sw-classic.ts", "src/store.ts", "src/protocol.ts"]
+}
