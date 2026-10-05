@@ -1,0 +1,4 @@
+source_revision=3f1dac46fd7d44967ee1825ba6cf91f22d760f74
+archive_sha256=fac51b256cef4e5986078d5268b9905388e2635e5012051e33ef1dfdfebad462
+license=Apache-2.0
+contents=Broker runtime, migrations, module files and attribution only

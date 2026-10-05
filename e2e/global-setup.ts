@@ -3,10 +3,9 @@ import { randomBytes } from 'node:crypto'
 import { mkdirSync, openSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { ADMIN, DATABASE_URL, DEMO_ORIGIN, HERALD_URL, POSTGRES, STATE_FILE, type HarnessState } from './harness'
+import { brokerSource } from './broker-source'
 
-// Runs a real Herald from source (HERALD_DIR, default ../herald) against a
-// throwaway Postgres container.
-const heraldDir = resolve(process.env.HERALD_DIR ?? '../herald')
+// Runs the pinned broker fixture, or an explicit HERALD_DIR, with disposable storage.
 const work = resolve('.e2e')
 const bin = (name: string) => resolve(work, 'bin', name)
 
@@ -70,6 +69,7 @@ async function waitForHealth(child: ReturnType<typeof spawn>) {
 
 export default async function globalSetup() {
   mkdirSync(resolve(work, 'bin'), { recursive: true })
+  const heraldDir = brokerSource(work)
   run('go', ['build', '-o', resolve(work, 'bin'), './cmd/herald', './cmd/heraldctl'], { cwd: heraldDir })
 
   startPostgres()

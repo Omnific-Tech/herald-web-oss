@@ -128,7 +128,8 @@ npm run test:e2e
 npm run test:e2e:report
 ```
 
-The suite builds and runs Herald from `HERALD_DIR` (default `../herald`)
+The suite builds and runs the pinned, reviewed broker fixture in `e2e/vendor/`.
+Set `HERALD_DIR` to test an explicit source checkout instead. It runs
 against a throwaway Postgres container it starts on port 5435 and removes
 afterwards (Docker and Go are required), and drives installed Google Chrome with real push
 subscriptions, so the tests need network access. `push-service.spec.ts` sends
@@ -141,10 +142,11 @@ message.
 Not covered: notification clicks (no automation hook in headless Chrome),
 Safari, Firefox, and iOS. Check those on real devices with the test page.
 
-CI checks out a pinned public Herald revision without a deploy key. Local tests
-can use a reviewed sibling checkout with `HERALD_DIR`. Reports are retained for
-both passing and failing runs; service credentials/state files are excluded.
-Set repository variable `HERALD_SOURCE_REVISION` to the reviewed broker commit.
+CI needs no cross-repository credentials or source-revision variables. The
+fixture's source commit and SHA-256 are recorded in `e2e/vendor/PROVENANCE.txt`;
+it contains runtime source and attribution, with no operational configuration
+or inherited history. Reports are retained for both passing and failing runs;
+service credentials/state files are excluded.
 
 ## Protocol
 
