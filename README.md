@@ -1,154 +1,121 @@
-# herald-web
+<div align="center">
 
-Herald Web Push client for product PWAs on desktop, iPhone and iPad. Android
-product APKs use [herald-android](https://github.com/Omnific-Tech/herald-android)
-instead.
+# Herald Web
 
-Products install this package into their existing PWA. It is a library, not a
-template: a protocol fix ships as a new version rather than a patch to every
-copy.
+**Web Push for your PWA. Shared subscription controls for Android.**
 
-## What it does
+[Herald broker](https://github.com/Omnific-Tech/herald-oss) · [Herald Android](https://github.com/Omnific-Tech/herald-android-oss) · [Demo PWA](demo/) · [Protocol v1](https://github.com/Omnific-Tech/herald-oss/blob/main/docs/protocol-v1.md)
 
-The page helper fetches the application's VAPID key from Herald, asks for
-notification permission, subscribes the browser, registers it with Herald as a
-`web` device, and sets its channel subscriptions.
+</div>
 
-The service worker handler receives the Herald delivery envelope, drops
-duplicates by `delivery_id`, suppresses already-expired messages, shows the
-notification (collapsing on `collapse_key`), and acknowledges the outcome. A
-click opens the message link only when it is a path on the PWA's own origin.
+Herald Web is a browser notification library for existing Progressive Web Apps. It connects your page and service worker to [Herald](https://github.com/Omnific-Tech/herald-oss), handling browser registration, channel/topic preferences, push delivery, and acknowledgements.
 
-The device token is stored in IndexedDB because the service worker cannot read
-`localStorage`. It authorizes only this device's acknowledgements and
-subscriptions.
+Inside an app built with [Herald Android](https://github.com/Omnific-Tech/herald-android-oss), the same page API manages native notification subscriptions through the Trusted Web Activity bridge. Your product keeps one set of notification controls; device credentials stay in the Android app.
 
-## Using it in a product
+## What it handles
 
-The package is not published yet. Products copy its build: run
-`npm run build` here and copy `dist/` into the product, which is safe because
-the JavaScript ends up in the product's public bundle anyway. The imports
-below then point at that copy instead of the package name.
+- **Page integration:** VAPID key discovery, permission requests, browser push subscriptions, and device registration.
+- **Service worker delivery:** duplicate suppression by `delivery_id`, expiry checks, notification display, and acknowledgements.
+- **Notification behavior:** collapse keys and click destinations restricted to your PWA's own origin.
+- **Android integration:** subscription changes through the native bridge, with cleanup of earlier browser registrations to avoid duplicate notifications.
 
-In the page, from a user action such as a "Notify me" button:
+The web device token is stored in IndexedDB so the service worker can access it. It authorizes that device's subscription changes and acknowledgements. Producer tokens and server credentials belong on your backend.
 
-```ts
-import { createHerald } from '@omnific-tech/herald-web'
+## Build and integrate
 
-const herald = createHerald({ heraldUrl: 'https://herald.example.com', application: 'sample' })
+The package is **not published to npm yet**. Build from this repository and vendor the output into your PWA:
 
-await herald.enable({ subscriptions: [{ channel: 'alerts' }, { channel: 'system' }] })
+```sh
+npm ci
+npm run build
 ```
 
-Call `herald.sync()` on each page load. It re-registers when the browser has
-replaced or dropped the push subscription. `status()`, `setSubscriptions()` and
-`disable()` cover the rest.
+Use **Node.js 22** as in CI. Copy `dist/` into your product, for example as `vendor/herald-web/`, and retain the repository's license and notice files. The examples below use that local copy; no npm package installation is assumed.
 
-In the service worker, either load the classic build (copy
-`node_modules/@omnific-tech/herald-web/dist/herald-sw.js` next to your worker):
+### In your page
+
+```ts
+import { createHerald } from './vendor/herald-web/index.js'
+
+const herald = createHerald({
+  heraldUrl: 'https://herald.example.com',
+  application: 'sample',
+})
+
+// From a user action, such as a "Notify me" button:
+await herald.enable({
+  subscriptions: [{ channel: 'alerts' }, { channel: 'system' }],
+})
+```
+
+Call `herald.sync()` on each page load to recover when the browser replaces or drops its push subscription. Use `status()`, `setSubscriptions()`, and `disable()` to display and update preferences. Your PWA must register its service worker; the helper uses the ready registration.
+
+The broker must list your PWA's origin in `CORS_ALLOWED_ORIGINS`, and the application's configured origin must match the PWA. Provision the application and its routing catalog before subscribing to topics.
+
+### In your service worker
+
+For a classic worker, serve the built `herald-sw.js` beside your worker:
 
 ```js
 importScripts('/herald-sw.js')
 HeraldSW.install({ fallbackUrl: '/', icon: '/icon-192.png' })
 ```
 
-or, for a bundled worker:
+For a bundled module worker:
 
 ```ts
-import { installHerald } from '@omnific-tech/herald-web/sw'
+import { installHerald } from './vendor/herald-web/sw.js'
 
 installHerald(self, { fallbackUrl: '/' })
 ```
 
-Pushes without a `delivery_id` are ignored, so a product can keep its own push
-handling alongside.
+Pushes without a `delivery_id` are ignored, allowing your product to retain other push handlers. The service worker implementation is in [src/sw.ts](src/sw.ts).
 
-Herald must list the product's origin in `CORS_ALLOWED_ORIGINS`, and the
-application's origin in Herald must match the PWA.
+## Platform behavior
 
-`enable()` rejects with a `HeraldError` whose `code` says why:
-`unsupported`, `android_app`, `permission_denied`, `push_unavailable` (the
-browser's push service refused, as Brave does until "Use Google services for
-push messaging" is turned on), `invalid_subscriptions` (the Android app
-rejected the set) or `request_failed`.
+| Environment | Delivery and integration |
+| --- | --- |
+| Supported desktop browsers | Web Push through the registered service worker |
+| iPhone and iPad | Web Push from a PWA opened from the Home Screen; request permission from a tap |
+| Herald Android app with bridge enabled | Native FCM delivery; the page API controls the APK's subscriptions |
+| Android app without a working bridge | `status().supported` is false; hide notification controls |
 
-### Inside the Android app
+On iOS, ordinary Safari tabs are not supported; show Home Screen installation instructions. The PWA manifest needs `"display": "standalone"`.
 
-A herald-android product APK opens the same PWA in a Trusted Web Activity and
-delivers notifications natively, so Web Push is never used there. When the
-APK enables its subscription bridge, the same calls work unchanged:
-`status()`, `enable()`, `setSubscriptions()` and `disable()` read and replace
-the APK's subscription set over the Trusted Web Activity message channel. The
-device token stays in the APK. `status().saved` is `false` until the user has
-chosen, so a product can apply its own defaults on first launch.
+Inside Android, `status()`, `enable()`, `setSubscriptions()`, and `disable()` read or replace the APK's subscription set. `status().saved` remains false until the user chooses preferences, so products can apply their own first-launch defaults. Device credentials never cross into the page.
 
-Without the bridge (disabled in the APK, or a default browser that cannot run
-a Trusted Web Activity), `status().supported` is `false` and `enable()`
-rejects with `android_app`; hide the control. In either case `sync()` removes
-any web registration made earlier in Chrome on that phone, so it is not
-notified twice.
+The bridge depends on a compatible TWA browser, the APK's `web_subscription_bridge` setting, and Digital Asset Links. Detection uses the `android-app://` referrer on the first page load and retains it for the tab session. See the [bridge contract](https://github.com/Omnific-Tech/herald-android-oss/blob/main/docs/subscription-bridge.md) and [page bridge implementation](src/bridge.ts).
 
-Detection relies on the `android-app://` referrer Chrome gives the app's first
-page load, kept for the tab's session. The bridge protocol is documented in
-`src/bridge.ts` and in herald-android's README.
+Handle `HeraldError.code` in your UI. Codes include unsupported environments, denied permission, push-service refusal, invalid subscriptions, and request failures; see [error definitions](src/errors.ts). For example, Brave may require enabling its Google push service before subscriptions succeed.
 
-### iPhone and iPad
+## Try the demo
 
-Safari delivers Web Push only to a PWA opened from the Home Screen, and only
-after permission is requested from a tap. In a normal Safari tab
-`isSupported()` returns `false`; show install instructions instead of the
-button. The PWA needs a manifest with `"display": "standalone"`.
-
-## Push test page
-
-`demo/` is a minimal PWA for checking delivery on real devices. It reads
-`VITE_HERALD_URL` and `VITE_HERALD_APPLICATION` at build time.
+`demo/` is a minimal PWA for checking a real broker and device:
 
 ```sh
-npm run dev    # against Herald on localhost:8080, application "demo"
+npm run dev
 ```
 
-Deployed as the Cloudflare Worker `herald-push-test`:
+By default it uses Herald at `http://localhost:8080` with application `demo`. Configure `VITE_HERALD_URL` and `VITE_HERALD_APPLICATION` for your own instance, provision a matching application, and allow the demo origin in the broker's CORS settings.
 
-| Setting | Value |
-| --- | --- |
-| Build command | `npm ci && npm run build:demo` |
-| Deploy command | `npx wrangler deploy` |
-| Build variables | `VITE_HERALD_URL`, `VITE_HERALD_APPLICATION` |
+To host the demo, run `npm ci && npm run build:demo`, then `npx wrangler deploy`. Set those build variables and update `connect-src` in [demo/public/_headers](demo/public/_headers) to your broker origin before deployment. The included policy uses a generic example.
 
-Create a matching application in Herald's admin UI with the test page's origin,
-add that origin to `CORS_ALLOWED_ORIGINS`, and update `connect-src` in
-`demo/public/_headers` to allow your own broker origin. Its default is a generic
-example and must be replaced for a deployed demo.
-
-## Tests
+## Verification
 
 ```sh
+npm run lint
 npm run test:e2e
 npm run test:e2e:report
 ```
 
-The suite builds and runs the pinned, reviewed broker fixture in `e2e/vendor/`.
-Set `HERALD_DIR` to test an explicit source checkout instead. It runs
-against a throwaway Postgres container it starts on port 5435 and removes
-afterwards (Docker and Go are required), and drives installed Google Chrome with real push
-subscriptions, so the tests need network access. `push-service.spec.ts` sends
-through the real push service and retries, since that service's latency and
-occasional refusals are outside the suite's control. The other specs hand the
-service worker the envelope Herald stored for the delivery through the DevTools
-protocol, as they do for cases Herald never sends, such as an already-expired
-message.
+The E2E suite requires **Docker, Go, installed Google Chrome, and network access**. It starts a throwaway PostgreSQL container on port 5435 and builds the pinned broker fixture in `e2e/vendor/`. Set `HERALD_DIR` to test an explicit broker checkout instead. Fixture source and SHA-256 are recorded in [provenance](e2e/vendor/PROVENANCE.txt); private deployment configuration and credentials are excluded.
 
-Not covered: notification clicks (no automation hook in headless Chrome),
-Safari, Firefox, and iOS. Check those on real devices with the test page.
+The real push-service scenario sends through the browser's push service and retries for its latency/refusals. Other scenarios inject broker-stored delivery envelopes through DevTools, including cases such as an already-expired message. CI retains the HTML report, screenshots, and failure traces for seven days.
 
-CI needs no cross-repository credentials or source-revision variables. The
-fixture's source commit and SHA-256 are recorded in `e2e/vendor/PROVENANCE.txt`;
-it contains runtime source and attribution, with no operational configuration
-or inherited history. Reports are retained for both passing and failing runs;
-service credentials/state files are excluded.
+Notification clicks, Safari, Firefox, and iOS are not covered by this automated suite. Verify those on real devices with the demo. This client implements Herald protocol v1; [src/protocol.ts](src/protocol.ts) mirrors its delivery types.
 
-## Protocol
+## License and toolkit
 
-This client speaks Herald protocol v1, defined in the herald repository at
-`docs/protocol-v1.md`. `src/protocol.ts` mirrors it.
+[Apache License 2.0](LICENSE) · [Copyright notice](NOTICE)
+
+[Herald broker](https://github.com/Omnific-Tech/herald-oss) · [Herald Android](https://github.com/Omnific-Tech/herald-android-oss) · [Omnific Tech](https://omnific.dev/)
